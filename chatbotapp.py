@@ -16,12 +16,18 @@ except AttributeError:
 else:
     ssl._create_default_https_context = _create_unverified_https_context
 
-# Download punkt tokenizer (essential for deployment)
-try:
-    nltk.data.find('tokenizers/punkt')
-except LookupError:
-    nltk.download('punkt', download_dir='/tmp/nltk_data')
-    nltk.data.path.append('/tmp/nltk_data')
+# Ensure NLTK data is downloaded (punkt_tab and wordnet for deployment)
+nltk_data_dir = os.path.join(os.path.expanduser("~"), "nltk_data")
+if not os.path.exists(nltk_data_dir):
+    os.makedirs(nltk_data_dir)
+
+# Download required NLTK datasets if missing
+for dataset in ["punkt_tab", "wordnet"]:
+    try:
+        nltk.data.find(f"tokenizers/{dataset}" if dataset == "punkt_tab" else dataset)
+    except LookupError:
+        nltk.download(dataset, download_dir=nltk_data_dir)
+nltk.data.path.append(nltk_data_dir)
 
 # Load intents from the JSON file
 file_path = os.path.abspath("./Intent.json")  # Ensure Intent.json is in the same directory
@@ -150,10 +156,6 @@ def add_custom_css():
 
 def main():
     global counter
-    add_custom_css()
-
-def main():
-    global counter
     add_custom_css()  # Apply custom CSS for the sustainable theme
 
     # Display BIOFEAST Header without logo
@@ -181,15 +183,18 @@ def main():
         
         # Display conversation history at the top
         st.header("Conversation History:")
-        with open('chat_log.csv', 'r', encoding='utf-8') as csvfile:
-            csv_reader = csv.reader(csvfile)
-            next(csv_reader)  # Skip the header row
-            history = list(csv_reader)[-5:]  # Show the last 5 conversations
-            for row in history:
-                st.markdown(f"""
-                <div class="history-item history-item-user">User: {row[0]}</div>
-                <div class="history-item history-item-chatbot">Chatbot: {row[1]}</div>
-                """, unsafe_allow_html=True)
+        try:
+            with open('chat_log.csv', 'r', encoding='utf-8') as csvfile:
+                csv_reader = csv.reader(csvfile)
+                next(csv_reader)  # Skip the header row
+                history = list(csv_reader)[-5:]  # Show the last 5 conversations
+                for row in history:
+                    st.markdown(f"""
+                    <div class="history-item history-item-user">User: {row[0]}</div>
+                    <div class="history-item history-item-chatbot">Chatbot: {row[1]}</div>
+                    """, unsafe_allow_html=True)
+        except FileNotFoundError:
+            st.write("No conversation history yet.")
 
         # User input
         user_input = st.text_input("You:", key=f"user_input_{counter}")
@@ -215,32 +220,32 @@ def main():
     elif choice == "Conversation History":
         # Display the conversation history in a collapsible expander
         st.header("Conversation History")
-        with open('chat_log.csv', 'r', encoding='utf-8') as csvfile:
-            csv_reader = csv.reader(csvfile)
-            next(csv_reader)  # Skip the header row
-            for row in csv_reader:
-                st.text(f"User: {row[0]}")
-                st.text(f"Chatbot: {row[1]}")
-                st.markdown("---")
+        try:
+            with open('chat_log.csv', 'r', encoding='utf-8') as csvfile:
+                csv_reader = csv.reader(csvfile)
+                next(csv_reader)  # Skip the header row
+                for row in csv_reader:
+                    st.text(f"User: {row[0]}")
+                    st.text(f"Chatbot: {row[1]}")
+                    st.markdown("---")
+        except FileNotFoundError:
+            st.write("No conversation history available.")
 
     # About Menu
     elif choice == "About":
         st.write("The goal of this project is to create a chatbot that can understand and respond to user input based on sustainable food practices.")
 
         st.subheader("Project Overview:")
-
         st.write("""
         This chatbot is designed to help users understand and make informed decisions about sustainable food choices, reducing food waste, and supporting a healthier environment. The chatbot is trained using intents and machine learning techniques.
         """)
 
         st.subheader("How the Chatbot Works:")
-
         st.write("""
         The chatbot uses Natural Language Processing (NLP) techniques to process user input and match it to predefined intents. It then responds with relevant information related to sustainable food practices based on the user's query.
         """)
 
         st.subheader("Sustainable Food Practices:")
-
         st.write("""
         Sustainable food practices are methods of food production and consumption that have minimal environmental impact. This includes choosing locally sourced food, reducing food waste, supporting ethical farming practices, and eating more plant-based foods.
         """)
